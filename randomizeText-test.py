@@ -1,6 +1,6 @@
 #!/usr/bin/python3 -W all
 """
-    randomizeText-test.py: tests for randomizeText-test.py
+    randomizeText-test.py: tests for randomizeText.py
     usage: randomizeText-test.py
     20171120 erikt(at)xs4all.nl
 """
