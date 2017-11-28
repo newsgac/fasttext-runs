@@ -1,7 +1,7 @@
 #!/usr/bin/python3 -W all
 """
     tscore.py: compute t-scores for the vocabulary of two fasttext file labels
-    usage: tscore.py label1 label2 < file
+    usage: tscore.py label1 [label2] < file
     note: source: Church, Gale, Hanks & Hindle, 1991, page 9
     20171124 erikt(at)xs4all.nl
 """
@@ -10,7 +10,7 @@ import math
 import sys
 
 COMMAND = sys.argv[0]
-USAGE = "usage: "+COMMAND+" label1 label2"
+USAGE = "usage: "+COMMAND+" label1 [label2]"
 
 def readData(label1,label2):
     data1 = { "totalFreq":0, "nbrOfWords":0, "wordFreqs":{} }
@@ -25,7 +25,8 @@ def readData(label1,label2):
                 else:
                     data1["wordFreqs"][tokens[i]] = 1.0
                     data1["nbrOfWords"] += 1.0
-        if tokens[0] == label2:
+        if tokens[0] == label2 or \
+           (label2 == "" and tokens[0] != label1):
             for i in range(1,len(tokens)):
                 data2["totalFreq"] += 1.0
                 if tokens[i] in data2["wordFreqs"]:
@@ -70,8 +71,13 @@ def writeData(tscores,data1,data2):
 
 def main(argv):
     argv.pop(0)
-    try: label1,label2 = argv
-    except: sys.exit(USAGE)
+    if len(argv) == 2:
+        label1,label2 = argv
+    elif len(argv) == 1:
+        label1 = argv[0]
+        label2 = ""
+    else:
+        sys.exit(USAGE)
     data1,data2 = readData(label1,label2)
     tscores = computeTscore(data1,data2)
     writeData(tscores,data1,data2)
