@@ -13,6 +13,7 @@ import pycurl
 import re
 import sys
 
+HEADINGDATE = "Datum"
 HEADINGGENRE = "Genre"
 HEADINGIDENTIFIER = "Identifier"
 HEADINGPREDICTION = "Prediction"
@@ -23,6 +24,7 @@ LABELLENGTH = 3
 def readFile():
     csvreader = csv.reader(sys.stdin,delimiter="\t")
     rowCounter = 0
+    columnDate = -1
     columnGenre = -1
     columnIdentifier = -1
     columnPrediction = -1
@@ -31,17 +33,19 @@ def readFile():
         rowCounter += 1
         if rowCounter == 1:
             for column in range(0,len(row)):
+                if row[column] == HEADINGDATE: columnDate = column
                 if row[column] == HEADINGGENRE: columnGenre = column
                 if row[column] == HEADINGIDENTIFIER: columnIdentifier = column
                 if row[column] == HEADINGPREDICTION: columnPrediction = column
         else:
             try:
+                date = row[columnDate]
                 genre = row[columnGenre]
                 identifier = row[columnIdentifier]
                 prediction = row[columnPrediction]
-                data.append({"genre":genre,"identifier":identifier,"prediction":prediction})
+                data.append({"date":date,"genre":genre,"identifier":identifier,"prediction":prediction})
             except:
-                sys.exit(COMMAND+": problem reading data: "+columnGenre+" "+columnIdentifier+" "+columnPrediction)
+                sys.exit(COMMAND+": problem reading data: "+columnDate+" "+columnGenre+" "+columnIdentifier+" "+columnPrediction)
     return(data)
 
 def abbreviateName(name): 
@@ -78,14 +82,16 @@ def tokenize(text):
 
 def printData(data):
     for i in range(0,len(data)):
+        date = data[i]["date"]
         genre = abbreviateName(data[i]["genre"])
         url = data[i]["identifier"]
+        url = url.rstrip()
         if not re.search("^http",url): url = data[i]["prediction"]
         if re.search("^http",url):
             url = re.sub("^http:","https:",url)
-            if not re.match(URLSUFFIX+"$",url): url += URLSUFFIX
+            if not re.search(URLSUFFIX+"$",url): url += URLSUFFIX
             text = removeRedundantWhiteSpace(tokenize(removeXML(readWebPage(url))))
-            print(LABELPREFIX+genre+" "+text)
+            print(LABELPREFIX+genre+" DATE="+date+" "+text)
 
 def main(argv):
     data = readFile()
