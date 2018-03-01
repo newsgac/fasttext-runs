@@ -1,10 +1,15 @@
 #!/bin/bash
 # run.sh: run 10cv fasttext experiment
-# usage: run.sh [-b] [-v]
+# usage: run.sh [-b] [-d dimension] [-e article-file] [ -m minCount ] [-v]
+# options: -b: use binary labels: news articles vs rest
+#          -d: dimension (size) of word vectors
+#          -e: use extra data for building word vectors
+#          -m: minimum count of word in data to enter lexicon
+#          -v: exteral word vector file
 # 20171124 erikt(at)xs4all.nl
 
 COMMAND=$0
-FILE=randomizeText.out
+FILE=randomizeText.out.nodates
 TMPFILE=run.$$.$RANDOM
 TRAIN=$TMPFILE.train
 TEST=$TMPFILE.test
@@ -14,16 +19,22 @@ LABELS=$TMPFILE.labels
 VECTORS=$TMPFILE.vectors
 FASTTEXT=$HOME/software/fastText/fasttext
 BINDIR=$HOME/projects/online-behaviour/machine-learning
-EXTRADATA=getMoreData.out.txt
-DIM=1
+DIM=300
 MINCOUNT=5
 USEBINARY=""
 USEVECTORS=""
-while getopts bv FLAG; do
+EXTRATEXT=""
+while getopts be:d:m:v: FLAG; do
 case $FLAG in
 b) USEBINARY="TRUE"
    ;;
-v) USEVECTORS="-pretrainedVectors $VECTORS.vec"
+d) DIM=$OPTARG
+   ;;
+e) EXTRATEXT=$OPTARG
+   ;;
+m) MINCOUNT=$OPTARG
+   ;;
+v) USEVECTORS="-pretrainedVectors $OPTARG"
    ;;
 \?) exit 1
    ;;
@@ -36,20 +47,21 @@ function makeBinary {
       cat
    else
       sed 's/^__label__NIE/FILLER/' |\
-         sed 's/^__label__.../__label__OTH/' |\
+         sed 's/^__label__[^ ]*/__label__OTH/' |\
          sed 's/^FILLER/__label__NIE/'
    fi
 }
 
-# tests:
-# add label to text: sed 's/__\(...\) /__\1 \1 /'
-# remove majority label: grep -v __label__NIE 
-# use binary labels: makeBinary
-
-if [ -n "$USEVECTORS" ]
+if [ -n "$EXTRATEXT" ]
 then
+   # create word vectors from training file AND extra data
+   if [ -n "$USEVECTORS" ]
+   then
+      echo "warning: ignoring vector file in $USEVECTORS" >&2
+   fi
+   USEVECTORS="-pretrainedVectors $VECTORS.vec"
    cat $FILE.? | cut -d' ' -f2- > $TRAIN
-   cat $EXTRADATA >> $TRAIN
+   cat $EXTRATEXT >> $TRAIN
    $FASTTEXT skipgram -input $TRAIN -output $VECTORS \
       -dim $DIM -minCount $MINCOUNT > /dev/null 2>/dev/null
 fi
@@ -72,6 +84,7 @@ cat $SCORES | (tr '\n' +;echo 0) | bc | sed 's/\([0-9]\)\./\.\1/' |\
 if [ -z "$USEBINARY" ]
 then
    sort $LABELS | uniq -c
+   wc -l $LABELS
 else
    cat $FILE.[0-9] | makeBinary |\
       paste -d' ' $LABELS - | cut -d' ' -f1,2 | sort | uniq -c
