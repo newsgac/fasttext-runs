@@ -20,7 +20,7 @@ def processOpts(argv):
     except: sys.exit(USAGE)
     for option in options[0]:
         if option[0] == "-f": inFileName = option[1]
-        elif option[0] == "-n": n = option[1]
+        elif option[0] == "-n": n = int(option[1])
     if inFileName == "": sys.exit(USAGE)
     return(inFileName,n)
 
@@ -44,6 +44,7 @@ def writeData(inFileName,data,n):
     return()
 
 def main(argv):
+    argv.pop(0)
     inFileName, n = processOpts(argv)
     data = readData(inFileName)
     writeData(inFileName,data,n)
