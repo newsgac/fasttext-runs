@@ -2,7 +2,7 @@
 """
     data2fasttext.py: convert NEWSGAC data format to fasttext format
     usage: tr '\r' '\n' < file | ./data2fasttext.py
-    notes: expects TAB separated file with fields Genre and Identifier
+    notes: expects TAB separated file with fields Genre Identifier Datum Prediction
     20171120 erikt(at)xs4all.nl
 """
 
@@ -20,6 +20,7 @@ HEADINGPREDICTION = "Prediction"
 LABELPREFIX = "__label__"
 URLSUFFIX = ":ocr"
 LABELLENGTH = 3
+COMMAND = sys.argv.pop(0)
 
 def readFile():
     csvreader = csv.reader(sys.stdin,delimiter="\t")
@@ -45,7 +46,7 @@ def readFile():
                 prediction = row[columnPrediction]
                 data.append({"date":date,"genre":genre,"identifier":identifier,"prediction":prediction})
             except:
-                sys.exit(COMMAND+": problem reading data: "+columnDate+" "+columnGenre+" "+columnIdentifier+" "+columnPrediction)
+                sys.exit(COMMAND+": problem reading data: "+str(columnDate)+" "+str(columnGenre)+" "+str(columnIdentifier)+" "+str(columnPrediction))
     return(data)
 
 def abbreviateName(name): 
