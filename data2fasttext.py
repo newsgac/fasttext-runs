@@ -1,102 +1,103 @@
 #!/usr/bin/python3 -W all
 """
     data2fasttext.py: convert NEWSGAC data format to fasttext format
-    usage: tr '\r' '\n' < file | ./data2fasttext.py
+    usage: tr '\r' '\n' < juliette-data.txt | ./data2fasttext.py
     notes: expects TAB separated file with fields Genre Identifier Datum Prediction
     20171120 erikt(at)xs4all.nl
 """
 
-from io import BytesIO
 import csv
+import html
 import nltk
-import pycurl
 import re
 import sys
+import time
 
+from io import BytesIO
+from urllib.request import urlopen
+
+COMMAND = sys.argv.pop(0)
 HEADINGDATE = "Datum"
 HEADINGGENRE = "Genre"
 HEADINGIDENTIFIER = "Identifier"
 HEADINGPREDICTION = "Prediction"
-LABELPREFIX = "__label__"
-URLSUFFIX = ":ocr"
+INSECUREURL = r"^http:"
 LABELLENGTH = 3
-COMMAND = sys.argv.pop(0)
+LABELPREFIX = "__label__"
+SECUREURL = r"https:"
+SEPARATOR = "\t"
+URLPREFIX = r"http"
+URLSUFFIX = ":ocr"
 
 def readFile():
-    csvreader = csv.reader(sys.stdin,delimiter="\t")
-    rowCounter = 0
-    columnDate = -1
-    columnGenre = -1
-    columnIdentifier = -1
-    columnPrediction = -1
-    data = []
-    for row in csvreader:
-        rowCounter += 1
-        if rowCounter == 1:
-            for column in range(0,len(row)):
-                if row[column] == HEADINGDATE: columnDate = column
-                if row[column] == HEADINGGENRE: columnGenre = column
-                if row[column] == HEADINGIDENTIFIER: columnIdentifier = column
-                if row[column] == HEADINGPREDICTION: columnPrediction = column
-        else:
-            try:
-                date = row[columnDate]
-                genre = row[columnGenre]
-                identifier = row[columnIdentifier]
-                prediction = row[columnPrediction]
-                data.append({"date":date,"genre":genre,"identifier":identifier,"prediction":prediction})
-            except:
-                sys.exit(COMMAND+": problem reading data: "+str(columnDate)+" "+str(columnGenre)+" "+str(columnIdentifier)+" "+str(columnPrediction))
-    return(data)
+    articles = []
+    lineNbr = 0
+    csvReader = csv.DictReader(sys.stdin,delimiter=SEPARATOR)
+    for row in csvReader:
+        lineNbr += 1
+        try:
+            date = row[HEADINGDATE]
+            genre = row[HEADINGGENRE]
+            identifier = row[HEADINGIDENTIFIER]
+            prediction = row[HEADINGPREDICTION]
+            articles.append({"date":date,"genre":genre,"identifier":identifier,"prediction":prediction})
+        except: sys.exit(COMMAND+": missing data on line "+str(lineNbr))
+    return(articles)
 
 def abbreviateName(name): 
     return(name[0:LABELLENGTH].upper())
 
 def readWebPage(url):
-    buffer = BytesIO()
-    c = pycurl.Curl()
-    c.setopt(c.URL,url)
-    c.setopt(c.WRITEDATA, buffer)
-    c.perform()
-    c.close()
-    body = buffer.getvalue()
-    body = body.decode('utf8')
-    return(body)
+    time.sleep(1)
+    return(str(urlopen(url,data=None).read(),encoding="utf-8"))
 
 def removeXML(text):
-    text = re.sub("<[^<>]*>"," ",text)
+    text = re.sub(r"<[^<>]*>",r" ",text)
+    text = html.unescape(text)
     return(text)
 
 def removeRedundantWhiteSpace(text):
-    text = re.sub("\s+"," ",text)
-    text = re.sub("^\s+","",text)
-    text = re.sub("\s+$","",text)
+    text = re.sub(r"\s+",r" ",text)
+    text = re.sub(r"^\s+",r"",text)
+    text = re.sub(r"\s+$",r"",text)
     return(text)
 
 def tokenize(text):
-    tokenizedList = nltk.word_tokenize(text)
-    tokenized = ""
-    for i in range(0,len(tokenizedList)):
-        if i == 0: tokenized = tokenizedList[i]
-        else: tokenized += " "+tokenizedList[i]
-    return(tokenized)
+    tokenizedSentenceList = nltk.word_tokenize(text)
+    tokenizedText = " ".join(tokenizedSentenceList)
+    return(tokenizedText)
 
-def printData(data):
-    for i in range(0,len(data)):
-        date = data[i]["date"]
-        genre = abbreviateName(data[i]["genre"])
-        url = data[i]["identifier"]
-        url = url.rstrip()
-        if not re.search("^http",url): url = data[i]["prediction"]
-        if re.search("^http",url):
-            url = re.sub("^http:","https:",url)
-            if not re.search(URLSUFFIX+"$",url): url += URLSUFFIX
-            text = removeRedundantWhiteSpace(tokenize(removeXML(readWebPage(url))))
+def isUrl(url):
+    return(re.search(URLPREFIX,url))
+
+def makeUrlSecure(url):
+    return(re.sub(INSECUREURL,SECUREURL,url))
+
+def addUrlSuffix(url):
+    if not re.search(URLSUFFIX+"$",url): url += URLSUFFIX
+    return(url)
+
+def printData(articles):
+    cache = {}
+    for i in range(0,len(articles)):
+        date = articles[i]["date"]
+        genre = abbreviateName(articles[i]["genre"])
+        # the url can be either in column identifier or in prediction
+        url = articles[i]["identifier"].rstrip()
+        if not isUrl(url): 
+            url = articles[i]["prediction"].rstrip()
+        if isUrl(url):
+            url = addUrlSuffix(makeUrlSecure(url))
+            if url in cache: 
+                text = cache[url]
+            else:
+                text = removeRedundantWhiteSpace(tokenize(removeXML(readWebPage(url))))
+                cache[url] = text
             print(LABELPREFIX+genre+" DATE="+date+" "+text)
 
 def main(argv):
-    data = readFile()
-    printData(data)
+    articles = readFile()
+    printData(articles)
     sys.exit(0)
 
 if __name__ == "__main__":
