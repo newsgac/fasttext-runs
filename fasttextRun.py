@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -W all
+#!/usr/bin/python3
 """
     fasttextRun.py: run fasttext via python interface
     usage: fasttextRun.py -f file [-n N]
@@ -12,6 +12,7 @@ import random
 import splitFile
 import sys
 
+COMMAND = sys.argv.pop(0)
 DIM = 300
 LARGENUMBER = 100000
 MINCOUNT = 5
