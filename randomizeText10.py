@@ -8,29 +8,31 @@
 import random
 import sys
 
+COMMAND = sys.argv.pop(0)
 N = 10
+
+def getLabel(line):
+    return(line.split()[0])
 
 def readData():
     data = []
     labelCount = {}
-    for line in sys.stdin: 
-        line = line.rstrip()
-        fields = line.split()
-        label = fields[0]
+    for line in sys.stdin:
+        label = getLabel(line)
         if not label in labelCount: labelCount[label] = 0
         labelCount[label] += 1
-        data.append(line)
+        data.append(line.strip())
     return(data,labelCount)
 
-def randomizeData(data):
+def randomizeList(listIn):
     random.seed()
-    randomData = []
-    while data:
-        i = random.randint(0,len(data)-1)
-        randomData.append(data[i])
-        data[i] = data[-1]
-        data.pop()
-    return(randomData)
+    listOut = []
+    while listIn:
+        i = random.randint(0,len(listIn)-1)
+        listOut.append(listIn[i])
+        listIn[i] = listIn[-1]
+        listIn.pop(-1)
+    return(listOut)
 
 def divideData(data,labelCount):
     buckets = []
@@ -41,13 +43,12 @@ def divideData(data,labelCount):
         currentBuckets[label] = 0
         bucketLengths[label] = 0
     for d in data:
-        fields = d.split()
-        label = fields[0]
+        label = getLabel(d)
         buckets[currentBuckets[label]].append(d)
         bucketLengths[label] += 1
-        if bucketLengths[label] >= labelCount[label]/N:
+        if int((bucketLengths[label]-1)*N/labelCount[label]) < \
+           int(bucketLengths[label]*N/labelCount[label]):
             currentBuckets[label] += 1
-            bucketLengths[label] = 0
     return(buckets)
 
 def printData(data):
@@ -55,8 +56,9 @@ def printData(data):
 
 def main(argv):
     data,labelCount = readData()
-    buckets = divideData(randomizeData(data),labelCount)
-    for i in range(0,len(buckets)): printData(buckets[i])
+    buckets = divideData(randomizeList(data),labelCount)
+    for i in range(0,len(buckets)): 
+        printData(randomizeList(buckets[i]))
     sys.exit(0)
 
 if __name__ == "__main__":
