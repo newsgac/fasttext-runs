@@ -43,7 +43,7 @@ def tscore(f1,f2,t1,t2,n1,n2):
     s2 = (f2+0.5)/math.pow(t2+n2/2.0,2.0)
     return((p1-p2)/math.sqrt(s1+s2))
 
-def tscoreList(f1,f2,n1,n2):
+def tscoreUniqueWords(f1,f2,n1,n2):
     p1 = (f1+0.5)/(n1+0.5)
     p2 = (f2+0.5)/(n2+0.5)
     s1 = (f1+0.5)/math.pow(n1+0.5,2.0)
@@ -68,7 +68,7 @@ def computeTscore(data1,data2):
             tscores[token] = tscore(f1,f2,t1,t2,n1,n2)
     return(tscores)
 
-def computeTscoreList(data1,data2):
+def computeTscoreUniqueWords(data1,data2):
     tscores = {}
     n1 = data1["maxCount"]
     n2 = data2["maxCount"]
@@ -76,12 +76,12 @@ def computeTscoreList(data1,data2):
         f1 = data1["wordFreqs"][token]
         if token in data2["wordFreqs"]: f2 = data2["wordFreqs"][token]
         else: f2 = 0.0
-        tscores[token] = tscoreList(f1,f2,n1,n2)
+        tscores[token] = tscoreUniqueWords(f1,f2,n1,n2)
     for token in data2["wordFreqs"]:
         if not token in data1["wordFreqs"]:
             f2 = data2["wordFreqs"][token]
             f1 = 0.0
-            tscores[token] = tscoreList(f1,f2,n1,n2)
+            tscores[token] = tscoreUniqueWords(f1,f2,n1,n2)
     return(tscores)
 
 def writeData(tscores,data1,data2):
