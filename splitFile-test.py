@@ -13,7 +13,7 @@ from contextlib import redirect_stdout
 import splitFile
 
 DATA = ['a','b','c']
-OPTSSHORT = ['-f','DATAFILE']
+OPTSSHORT = ['PROGRAMCALL','-f','DATAFILE']
 OPTSLONG = OPTSSHORT+['-n',splitFile.DEFAULTN-1]
 
 def string2list(inString):

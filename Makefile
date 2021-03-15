@@ -8,6 +8,9 @@ random: randomizeText.out.0
 run:
 	./run.sh
 
+binary-run:
+	./run.sh -b
+
 tscores:
 	./tscore.py __label__NIE __label__COL < randomizeText.out | less
 
